@@ -96,13 +96,13 @@ App will be available at `http://127.0.0.1:5000`.
 ## Screenshots
 
 ### Dashboard UI
-![Dashboard UI](docs/screenshots/dashboard.png)
+![Dashboard UI](docs/dashboard.png)
 
 ### Created URL + QR
-![Created URL with QR](docs/screenshots/result.png)
+![Created URL with QR](docs/result.png)
 
 ### Mobile View
-![Mobile responsive view](docs/screenshots/mobile.png)
+![Mobile responsive view](docs/mobile.png)
 
 ## Notes
 
