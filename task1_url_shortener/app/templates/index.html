@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% block title %}SnapURL | Smart URL Shortener{% endblock %}
+{% block content %}
+<main class="page">
+    <header class="hero">
+        <h1>⚡ SnapURL</h1>
+        <p>Fast, secure, analytics-ready URL shortening for production workflows.</p>
+    </header>
+
+    <section class="card">
+        <h2>Create Short URL</h2>
+        <form id="shortenForm">
+            <div class="field">
+                <label for="url">Long URL</label>
+                <input id="url" name="url" type="text" placeholder="https://example.com/very/long/link or github.com/user/repo" required>
+            </div>
+            <div class="grid">
+                <div class="field">
+                    <label for="custom_alias">Custom Alias</label>
+                    <input id="custom_alias" name="custom_alias" type="text" placeholder="mylink">
+                </div>
+                <div class="field">
+                    <label for="expires_at">Expiry (optional)</label>
+                    <input id="expires_at" name="expires_at" type="datetime-local">
+                </div>
+            </div>
+            <div class="field">
+                <label for="password">Password (optional)</label>
+                <input id="password" name="password" type="password" placeholder="Protect this link">
+            </div>
+            <button id="submitBtn" type="submit">Shorten URL</button>
+        </form>
+
+        <div id="message"></div>
+
+        <div id="result" class="result hidden">
+            <h3>Your Short URL</h3>
+            <div class="result-row">
+                <a id="shortUrl" href="#" target="_blank" rel="noopener noreferrer"></a>
+                <button id="copyBtn" type="button">Copy</button>
+            </div>
+            <div class="qr-wrap">
+                <img id="qrImage" src="" alt="QR code">
+                <a id="downloadQr" href="" download>Download QR</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>Recent Analytics</h2>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Short URL</th>
+                        <th>Original</th>
+                        <th>Clicks</th>
+                        <th>Last Accessed</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="analyticsBody">
+                    {% for link in links %}
+                    <tr>
+                        <td><a href="/{{ link.public_code() }}" target="_blank">/{{ link.public_code() }}</a></td>
+                        <td class="truncate">{{ link.original_url }}</td>
+                        <td>{{ link.click_count }}</td>
+                        <td>{{ link.last_accessed_at.strftime('%Y-%m-%d %H:%M') if link.last_accessed_at else 'Never' }}</td>
+                        <td>{{ "Expired" if link.is_expired() else "Active" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+
+<script>
+const form = document.getElementById("shortenForm");
+const submitBtn = document.getElementById("submitBtn");
+const message = document.getElementById("message");
+const result = document.getElementById("result");
+const shortUrlEl = document.getElementById("shortUrl");
+const copyBtn = document.getElementById("copyBtn");
+const qrImage = document.getElementById("qrImage");
+const downloadQr = document.getElementById("downloadQr");
+
+function setMessage(text, type = "info") {
+    message.className = "msg " + type;
+    message.textContent = text;
+}
+
+form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Creating...";
+    setMessage("Generating your short link...", "info");
+
+    const payload = {
+        url: document.getElementById("url").value,
+        custom_alias: document.getElementById("custom_alias").value || null,
+        expires_at: document.getElementById("expires_at").value
+            ? new Date(document.getElementById("expires_at").value).toISOString()
+            : null,
+        password: document.getElementById("password").value || null
+    };
+
+    try {
+        const response = await fetch("/api/shorten", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+            setMessage(data.error || "Failed to shorten URL.", "error");
+            return;
+        }
+
+        const shortUrl = data.data.short_url;
+        shortUrlEl.href = shortUrl;
+        shortUrlEl.textContent = shortUrl;
+        qrImage.src = data.data.qr_code_url;
+        downloadQr.href = data.data.qr_code_url;
+        result.classList.remove("hidden");
+        result.classList.add("show");
+        setMessage("Success! Your link is ready.", "success");
+        await loadAnalytics();
+    } catch (error) {
+        setMessage("Something went wrong. Please try again.", "error");
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Shorten URL";
+    }
+});
+
+copyBtn.addEventListener("click", async () => {
+    const text = shortUrlEl.textContent;
+    if (!text) return;
+    await navigator.clipboard.writeText(text);
+    copyBtn.textContent = "Copied!";
+    setTimeout(() => { copyBtn.textContent = "Copy"; }, 1200);
+});
+
+async function loadAnalytics() {
+    const body = document.getElementById("analyticsBody");
+    const response = await fetch("/api/links?limit=10");
+    const data = await response.json();
+    if (!data.success) return;
+
+    body.innerHTML = "";
+    data.data.forEach((link) => {
+        const tr = document.createElement("tr");
+        const code = link.custom_alias || link.short_code;
+        tr.innerHTML = `
+            <td><a href="/${code}" target="_blank">/${code}</a></td>
+            <td class="truncate">${link.original_url}</td>
+            <td>${link.click_count}</td>
+            <td>${link.last_accessed_at ? new Date(link.last_accessed_at).toLocaleString() : "Never"}</td>
+            <td>${link.is_active ? "Active" : "Inactive"}</td>
+        `;
+        body.appendChild(tr);
+    });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Protected Link | SnapURL{% endblock %}
+{% block content %}
+<main class="page">
+    <section class="card" style="max-width: 520px; margin: 4rem auto;">
+        <h2>Protected Link</h2>
+        <p style="color: var(--muted);">This short URL requires a password before redirect.</p>
+        {% if error %}
+        <p class="msg error">{{ error }}</p>
+        {% endif %}
+        <form method="post" action="/{{ short_code }}">
+            <div class="field">
+                <label for="password">Password</label>
+                <input id="password" name="password" type="password" placeholder="Enter password" required>
+            </div>
+            <button type="submit">Continue</button>
+        </form>
+    </section>
+</main>
+{% endblock %}
