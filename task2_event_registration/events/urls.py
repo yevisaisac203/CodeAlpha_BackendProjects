@@ -1,3 +1,9 @@
-from django.urls import path
+from rest_framework.routers import DefaultRouter
 
-urlpatterns = []
+from .views import CategoryViewSet, EventViewSet
+
+router = DefaultRouter()
+router.register("categories", CategoryViewSet)
+router.register("events", EventViewSet, basename="event")
+
+urlpatterns = router.urls
