@@ -163,13 +163,19 @@ class EventViewSet(viewsets.ModelViewSet):
 class RegistrationViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = RegistrationSerializer
+    queryset = Registration.objects.none()
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return Registration.objects.none()
+
         queryset = Registration.objects.select_related(
             "event", "event__category", "event__organizer"
         )
         user = self.request.user
-        if user.role == "admin":
+        if not user.is_authenticated:
+            return Registration.objects.none()
+        if getattr(user, "role", None) == "admin":
             return queryset.order_by("-registered_at")
         return queryset.filter(user=user).order_by("-registered_at")
 

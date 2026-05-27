@@ -1,4 +1,4 @@
-# ?? EventHub — Event Registration System
+#  EventHub ï¿½ Event Registration System
 
 ![Python](https://img.shields.io/badge/Python-3.11-blue)
 ![Django](https://img.shields.io/badge/Django-5.2-green)
